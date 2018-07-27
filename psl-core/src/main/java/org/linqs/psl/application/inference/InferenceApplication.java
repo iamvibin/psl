@@ -61,6 +61,13 @@ public abstract class InferenceApplication implements ModelApplication {
 	public static final String TERM_GENERATOR_KEY = CONFIG_PREFIX + ".termgenerator";
 	public static final String TERM_GENERATOR_DEFAULT = "org.linqs.psl.reasoner.admm.term.ADMMTermGenerator";
 
+	/**
+	 * Sort the term store before inference.
+	 * Sorting is fairly costly.
+	 */
+	public static final String SORT_TERMS_KEY = CONFIG_PREFIX + ".sortterms";
+	public static final boolean SORT_TERMS_DEFAULT = false;
+
 	protected Model model;
 	protected Database db;
 	protected Reasoner reasoner;

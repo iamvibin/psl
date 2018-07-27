@@ -18,4 +18,9 @@
 package org.linqs.psl.reasoner.term;
 
 public interface Term {
+	/**
+	 * Terms need a reliable way to identify themselves across programs
+	 * so they can be properly sorted for consistent ordering.
+	 */
+	public int hashCode();
 }

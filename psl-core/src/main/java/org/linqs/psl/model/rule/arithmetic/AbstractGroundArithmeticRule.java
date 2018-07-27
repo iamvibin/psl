@@ -21,6 +21,7 @@ import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.reasoner.function.FunctionComparator;
+import org.linqs.psl.util.HashCode;
 
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -31,8 +32,6 @@ import java.util.Set;
 
 /**
  * Base class for all ground arithmetic rules.
- *
- * @author Stephen Bach
  */
 public abstract class AbstractGroundArithmeticRule implements GroundRule {
 	protected final AbstractArithmeticRule rule;
@@ -40,6 +39,8 @@ public abstract class AbstractGroundArithmeticRule implements GroundRule {
 	protected final GroundAtom[] atoms;
 	protected final FunctionComparator comparator;
 	protected final double constant;
+
+	private final int hashcode;
 
 	protected AbstractGroundArithmeticRule(AbstractArithmeticRule rule,
 			List<Double> coeffs, List<GroundAtom> atoms, FunctionComparator comparator, double constant) {
@@ -66,6 +67,17 @@ public abstract class AbstractGroundArithmeticRule implements GroundRule {
 			this.coeffs = coeffs;
 			this.atoms = atoms;
 		}
+
+		int hash = HashCode.build(rule);
+		for (int i = 0; i < this.atoms.length; i++) {
+			hash = HashCode.build(hash, this.atoms[i]);
+		}
+		this.hashcode = hash;
+	}
+
+	@Override
+	public int hashCode() {
+		return hashcode;
 	}
 
 	@Override

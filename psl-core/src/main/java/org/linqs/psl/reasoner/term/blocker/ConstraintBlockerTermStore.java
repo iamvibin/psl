@@ -24,9 +24,12 @@ import org.linqs.psl.model.rule.WeightedGroundRule;
 import org.linqs.psl.model.rule.arithmetic.UnweightedGroundArithmeticRule;
 import org.linqs.psl.model.rule.misc.GroundValueConstraint;
 import org.linqs.psl.reasoner.term.TermStore;
+import org.linqs.psl.util.MathUtils;
 import org.linqs.psl.util.RandUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.List;
@@ -162,5 +165,43 @@ public class ConstraintBlockerTermStore implements TermStore<ConstraintBlockerTe
 	@Override
 	public Iterator<ConstraintBlockerTerm> iterator() {
 		return blocks.iterator();
+	}
+
+	@Override
+	public Map<Integer, Integer> sort() {
+		// Sore the new terms by hash.
+		ArrayList<ConstraintBlockerTerm> newBlock = new ArrayList<ConstraintBlockerTerm>(blocks);
+		Collections.sort(newBlock, new Comparator<ConstraintBlockerTerm>() {
+			@Override
+			public int compare(ConstraintBlockerTerm a, ConstraintBlockerTerm b) {
+				return MathUtils.compare(a.hashCode(), b.hashCode());
+			}
+
+			@Override
+			public boolean equals(Object other) {
+				return other != null && this == other;
+			}
+		});
+
+		// Get a mapping of the new term indexes.
+		Map<Integer, Integer> indexRemap = new HashMap<Integer, Integer>();
+		for (int oldIndex = 0; oldIndex < blocks.size(); oldIndex++) {
+			ConstraintBlockerTerm oldTerm = blocks.get(oldIndex);
+
+			for (int newIndex = 0; newIndex < blocks.size(); newIndex++) {
+				// Note reference equality.
+				if (oldTerm ==  newBlock.get(newIndex)) {
+					indexRemap.put(new Integer(oldIndex), new Integer(newIndex));
+					break;
+				}
+			}
+		}
+
+		// Reindex the random variables.
+		for (RandomVariableAtom atom : rvMap.keySet()) {
+         rvMap.put(atom, indexRemap.get(rvMap.get(atom)));
+		}
+
+		return indexRemap;
 	}
 }

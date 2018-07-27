@@ -24,9 +24,12 @@ import org.linqs.psl.reasoner.admm.ADMMReasoner;
 import org.linqs.psl.reasoner.function.AtomFunctionVariable;
 import org.linqs.psl.reasoner.term.MemoryTermStore;
 import org.linqs.psl.reasoner.term.TermStore;
+import org.linqs.psl.util.MathUtils;
 import org.linqs.psl.util.RandUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -49,7 +52,13 @@ public class ADMMTermStore implements TermStore<ADMMObjectiveTerm> {
 	// Keep an internal store to hold the terms while this class focus on variables.
 	private TermStore<ADMMObjectiveTerm> store;
 
+	// A mapping of atom variables to their global (consensus) variable identifier.
 	private Map<AtomFunctionVariable, Integer> variableIndexes;
+
+	/**
+	 * The local variables used in each term.
+	 * Indexed by the global associated with each local.
+	 */
 	private List<List<LocalVariable>> localVariables;
 
 	/**
@@ -209,5 +218,69 @@ public class ADMMTermStore implements TermStore<ADMMObjectiveTerm> {
 	@Override
 	public List<Integer> getTermIndices(WeightedGroundRule rule) {
 		return store.getTermIndices(rule);
+	}
+
+	@Override
+	public Map<Integer, Integer> sort() {
+		Map<Integer, Integer> termIndexMapping = store.sort();
+
+		// Sort atom variables.
+		// Use the new index as the gloabal variable index.
+		List<AtomFunctionVariable> sortedAtomVariables = new ArrayList<AtomFunctionVariable>(variableIndexes.keySet());
+		Collections.sort(sortedAtomVariables, new Comparator<AtomFunctionVariable>() {
+			@Override
+			public int compare(AtomFunctionVariable a, AtomFunctionVariable b) {
+				return MathUtils.compare(a.hashCode(), b.hashCode());
+			}
+
+			@Override
+			public boolean equals(Object other) {
+				return other != null && this == other;
+			}
+		});
+
+		// Build mapping of new to old atom variable index.
+		Map<Integer, Integer> atomVariableIndexMap = new HashMap<Integer, Integer>();
+		for (int newIndex = 0; newIndex < variableIndexes.size(); newIndex++) {
+			atomVariableIndexMap.put(variableIndexes.get(sortedAtomVariables.get(newIndex)), new Integer(newIndex));
+		}
+
+      // TEST
+      System.out.println("Store   Size: " + store.size());
+      System.out.println("Locals  Size: " + localVariables.size());
+      System.out.println("Mapping Size: " + termIndexMapping.size());
+      System.out.println("Atom Variable Size: " + termIndexMapping.size());
+
+		// Reindex local variables.
+		List<List<LocalVariable>> newLocalVariables = new ArrayList<List<LocalVariable>>(localVariables.size());
+		for (int oldIndex = 0; oldIndex < localVariables.size(); oldIndex++) {
+         newLocalVariables.add(null);
+      }
+
+		for (int oldIndex = 0; oldIndex < localVariables.size(); oldIndex++) {
+			int newIndex = atomVariableIndexMap.get(new Integer(oldIndex)).intValue();
+
+         // TEST
+         System.out.println("" + oldIndex + " -> " + newIndex);
+
+			newLocalVariables.set(newIndex, localVariables.get(oldIndex));
+		}
+		localVariables = newLocalVariables;
+
+		// Re-map atom variables.
+		variableIndexes.clear();
+		for (int i = 0; i < sortedAtomVariables.size(); i++) {
+			variableIndexes.put(sortedAtomVariables.get(i), new Integer(i));
+		}
+
+		// Change the global index of each local variable.
+		for (List<LocalVariable> locals : localVariables) {
+			for (LocalVariable variable : locals) {
+				Integer oldId = new Integer(variable.getGlobalId());
+				variable.setGlobalId(atomVariableIndexMap.get(oldId).intValue());
+			}
+		}
+
+		return termIndexMapping;
 	}
 }

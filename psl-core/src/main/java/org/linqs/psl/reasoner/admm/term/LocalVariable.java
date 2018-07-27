@@ -23,7 +23,7 @@ package org.linqs.psl.reasoner.admm.term;
  * Note that local variables are hashed and equated by the global variable they track.
  */
 public class LocalVariable {
-	private final int globalId;
+	private int globalId;
 	private float value;
 	private float lagrange;
 
@@ -39,6 +39,10 @@ public class LocalVariable {
 
 	public int getGlobalId() {
 		return globalId;
+	}
+
+	public void setGlobalId(int newId) {
+		globalId = newId;
 	}
 
 	public float getLagrange() {

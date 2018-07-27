@@ -22,6 +22,7 @@ import org.linqs.psl.model.rule.WeightedGroundRule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A place to store terms that are to be optimized.
@@ -59,4 +60,11 @@ public interface TermStore<E extends Term> extends Iterable<E> {
 	 * Get the indicies for all terms related to a specific rule.
 	 */
 	public List<Integer> getTermIndices(WeightedGroundRule rule);
+
+	/**
+	 * Sort all terms so that they are predictible between runs.
+	 * Note that this is fairly expensive and should only be used if necessary.
+	 * @return a mapping of the old term indexes to the new ones.
+	 */
+	public Map<Integer, Integer> sort();
 }

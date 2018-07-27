@@ -25,10 +25,14 @@ import org.linqs.psl.model.atom.GroundAtom;
 /**
  * A function that either constrains or measures the compatibility of the
  * values of {@link GroundAtom GroundAtoms}.
- * <p>
  * GroundRules are templated by a parent {@link Rule}.
  */
 public interface GroundRule {
+	/**
+	 * Ground rules need a good hash that is consistent between runs.
+	 */
+	public int hashCode();
+
 	/**
 	 * @return this GroundRule's parent {@link Rule}
 	 */

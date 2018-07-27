@@ -20,6 +20,7 @@ package org.linqs.psl.application.inference;
 import org.linqs.psl.application.groundrulestore.GroundRuleStore;
 import org.linqs.psl.application.util.GroundRules;
 import org.linqs.psl.application.util.Grounding;
+import org.linqs.psl.config.Config;
 import org.linqs.psl.database.Database;
 import org.linqs.psl.database.atom.PersistedAtomManager;
 import org.linqs.psl.model.Model;
@@ -56,6 +57,11 @@ public class MPEInference extends InferenceApplication {
 		@SuppressWarnings("unchecked")
 		int termCount = termGenerator.generateTerms(groundRuleStore, termStore);
 		log.debug("Generated {} objective terms from {} ground rules.", termCount, groundCount);
+
+		if (Config.getBoolean(InferenceApplication.SORT_TERMS_KEY, InferenceApplication.SORT_TERMS_DEFAULT)) {
+			log.debug("Sorting term store.");
+			termStore.sort();
+		}
 	}
 
 	@Override

@@ -20,8 +20,12 @@ package org.linqs.psl.reasoner.term;
 import org.linqs.psl.config.Config;
 import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.WeightedGroundRule;
+import org.linqs.psl.util.HashCode;
+import org.linqs.psl.util.MathUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -139,5 +143,56 @@ public class MemoryTermStore<E extends Term> implements TermStore<E> {
 	@Override
 	public List<Integer> getTermIndices(WeightedGroundRule rule) {
 		return new UnmodifiableList<Integer>(ruleMapping.get(rule));
+	}
+
+	@Override
+	public Map<Integer, Integer> sort() {
+		// Because there can be multiple terms that have the same atoms,
+		// we also need to use the rule's hash.
+		final Map<E, Integer> termToHash = new HashMap<E, Integer>();
+		for (Map.Entry<WeightedGroundRule, List<Integer>> entry : ruleMapping.entrySet()) {
+			WeightedGroundRule rule = entry.getKey();
+			for (Integer termIndex : entry.getValue()) {
+				E term = store.get(termIndex.intValue());
+				termToHash.put(term, HashCode.build(rule.hashCode(), term));
+			}
+		}
+
+		// Sore the new terms by augmented hash.
+		ArrayList<E> newStore = new ArrayList<E>(store);
+		Collections.sort(newStore, new Comparator<E>() {
+			@Override
+			public int compare(E a, E b) {
+				return MathUtils.compare(termToHash.get(a).intValue(), termToHash.get(b).intValue());
+			}
+
+			@Override
+			public boolean equals(Object other) {
+				return other != null && this == other;
+			}
+		});
+
+		// Get a mapping of the new term indexes.
+		Map<Integer, Integer> indexRemap = new HashMap<Integer, Integer>();
+		for (int oldIndex = 0; oldIndex < store.size(); oldIndex++) {
+			E oldTerm = store.get(oldIndex);
+
+			for (int newIndex = 0; newIndex < store.size(); newIndex++) {
+				// Note reference equality.
+				if (oldTerm ==  newStore.get(newIndex)) {
+					indexRemap.put(new Integer(oldIndex), new Integer(newIndex));
+					break;
+				}
+			}
+		}
+
+		// Reindex the local variables.
+		for (List<Integer> oldIndexes : ruleMapping.values()) {
+			for (int i = 0; i < oldIndexes.size(); i++) {
+				oldIndexes.set(i, indexRemap.get(oldIndexes.get(i)));
+			}
+		}
+
+		return indexRemap;
 	}
 }
