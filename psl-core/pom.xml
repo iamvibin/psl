@@ -27,7 +27,7 @@
 	<parent>
 		<groupId>org.linqs</groupId>
 		<artifactId>psl</artifactId>
-		<version>2.1.0-SNAPSHOT</version>
+		<version>CANARY-2.1.2-pigi</version>
 	</parent>
 
 	<dependencies>
