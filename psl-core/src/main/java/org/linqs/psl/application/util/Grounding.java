@@ -136,14 +136,25 @@ public class Grounding {
 		// We do not want to throw too early because the ground rule may turn out to be trivial in the end.
 		boolean oldAccessExceptionState = atomManager.enableAccessExceptions(false);
 
-		int initialCount = groundRuleStore.size();
+
+		/* TEST
 		QueryResultIterable queryResults = atomManager.executeGroundingQuery(query);
 		Parallel.RunTimings timings = Parallel.foreach(queryResults, new GroundWorker(atomManager, groundRuleStore, queryResults.getVariableMap(), rules));
+		*/
+
+		QueryResultIterable queryResults = atomManager.executeGroundingQuery(query);
+		List<Constant[]> results = new ArrayList<Constant[]>();
+		for (Constant[] queryResult : queryResults) {
+			results.add(queryResult);
+		}
+		log.trace("Got {} results from query [{}].", results.size(), query);
+
+		int initialCount = groundRuleStore.size();
+		Parallel.foreach(results, new GroundWorker(atomManager, groundRuleStore, queryResults.getVariableMap(), rules));
 		int groundCount = groundRuleStore.size() - initialCount;
 
 		atomManager.enableAccessExceptions(oldAccessExceptionState);
 
-		log.trace("Got {} results from query [{}].", timings.iterations, query);
 		log.debug("Generated {} ground rules with query: [{}].", groundCount, query);
 		return groundCount;
 	}
