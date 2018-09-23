@@ -254,12 +254,13 @@ public class Launcher {
 
 		InferenceApplication inferenceApplication =
 				InferenceApplication.getInferenceApplication(inferenceName, model, database);
-		inferenceApplication.inference();
+		// TODO(eriq): We don't need to run inference for our tests, only ground.
+		// inferenceApplication.inference();
 
 		log.info("Inference Complete");
 
 		// Output the results.
-		outputResults(database, dataStore, closedPredicates);
+		// outputResults(database, dataStore, closedPredicates);
 
 		return database;
 	}
