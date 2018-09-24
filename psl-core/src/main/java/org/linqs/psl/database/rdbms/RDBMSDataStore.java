@@ -17,6 +17,8 @@
  */
 package org.linqs.psl.database.rdbms;
 
+import org.linqs.psl.application.util.Grounding;
+import org.linqs.psl.config.Config;
 import org.linqs.psl.database.DataStore;
 import org.linqs.psl.database.Database;
 import org.linqs.psl.database.Partition;
@@ -212,6 +214,17 @@ public class RDBMSDataStore implements DataStore {
 
 		// Ensure that DB stats are up-to-date.
 		dbDriver.updateDBStats();
+
+		if (Config.getBoolean(Grounding.REWRITE_QUERY_KEY, Grounding.REWRITE_QUERY_DEFAULT)) {
+			// Cache statistics.
+			Parallel.foreach(toIndex, new Parallel.Worker<PredicateInfo>() {
+				@Override
+				public void work(int index, PredicateInfo predicateInfo) {
+					log.trace("Fetching stats for " + predicateInfo.predicate());
+					predicateInfo.getTableStats(dbDriver);
+				}
+			});
+		}
 
 		log.debug("Predicate indexing complete.");
 	}
