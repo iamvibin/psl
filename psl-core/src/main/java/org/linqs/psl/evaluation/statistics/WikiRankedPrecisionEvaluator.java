@@ -73,8 +73,7 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
 
     @Override
     public double getRepresentativeMetric() {
-        // TODO(eriq):
-        return 0.0;
+        return getNetScore(1);
     }
 
     @Override
@@ -84,12 +83,49 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
 
     @Override
     public String getAllStats() {
-        return "TODO";
-        /*
-        return String.format(
-                "AUROC: %f, Positive Class AUPRC: %f, Negative Class AUPRC: %f",
-                auroc(), positiveAUPRC(), negativeAUPRC());
-        */
+        StringBuilder builder = new StringBuilder();
+
+        boolean first = true;
+
+        for (String langFrom : LANGUAGES) {
+            for (String langTo : LANGUAGES) {
+                LanguagePairStats pairStats = stats.get(langFrom).get(langTo);
+
+                if (first) {
+                    first = false;
+                } else {
+                    builder.append(", ");
+                }
+
+                builder.append(pairStats);
+            }
+        }
+
+        return builder.toString();
+    }
+
+    private double getNetScore(int level) {
+        if (level != 1 && level != 3 && level != 5) {
+            throw new IllegalArgumentException("Level must be 1, 3, or 5.");
+        }
+
+        double delta = 0.0;
+
+        for (String langFrom : LANGUAGES) {
+            for (String langTo : LANGUAGES) {
+                LanguagePairStats pairStats = stats.get(langFrom).get(langTo);
+
+                if (level == 1) {
+                    delta += pairStats.precisionAt1;
+                } else if (level == 3) {
+                    delta += pairStats.precisionAt3;
+                } else {
+                    delta += pairStats.precisionAt5;
+                }
+            }
+        }
+
+        return delta;
     }
 
     private String getLang(String text) {
@@ -99,7 +135,58 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
     private Map<String, Map<String, LanguagePairStats>> computeStats(Map<String, Map<String, List<Prediction>>> rankedPredictions) {
         Map<String, Map<String, LanguagePairStats>> results = new HashMap<String, Map<String, LanguagePairStats>>();
 
-        // TEST
+        for (String langFrom : LANGUAGES) {
+            for (String langTo : LANGUAGES) {
+                LanguagePairStats pairStats = new LanguagePairStats(langFrom, langTo);
+                if (!results.containsKey(langFrom)) {
+                    results.put(langFrom, new HashMap<String, LanguagePairStats>());
+                }
+                results.get(langFrom).put(langTo, pairStats);
+
+                if (langFrom.equals(langTo)) {
+                    continue;
+                }
+
+                for (String textFrom : rankedPredictions.keySet()) {
+                    if (!langFrom.equals(getLang(textFrom))) {
+                        continue;
+                    }
+
+                    List<Prediction> predictions = rankedPredictions.get(textFrom).get(langTo);
+                    if (predictions == null) {
+                        continue;
+                    }
+
+                    // TODO(eriq): Do we need indovidual counts for each precision.
+                    //  If we do, the loop below will throw an index ecetpion.
+                    pairStats.count++;
+
+                    // for (int i = 0; i < predictions.size(); i++) {
+                    for (int i = 0; i < 5; i++) {
+                        if (!predictions.get(i).truth) {
+                            continue;
+                        }
+
+                        if (i < 1) {
+                            pairStats.precisionAt1++;
+                            pairStats.precisionAt3++;
+                            pairStats.precisionAt5++;
+                        } else if (i < 3) {
+                            pairStats.precisionAt3++;
+                            pairStats.precisionAt5++;
+                        } else if (i < 5) {
+                            pairStats.precisionAt5++;
+                        }
+
+                        break;
+                    }
+                }
+
+                pairStats.precisionAt1 = pairStats.precisionAt1 / pairStats.count;
+                pairStats.precisionAt3 = pairStats.precisionAt3 / pairStats.count;
+                pairStats.precisionAt5 = pairStats.precisionAt5 / pairStats.count;
+            }
+        }
 
         return results;
     }
@@ -206,6 +293,7 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
         public String langFrom;
         public String langTo;
         public int count;
+
         public double precisionAt1;
         public double precisionAt3;
         public double precisionAt5;
@@ -215,6 +303,7 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
             this.langTo = langTo;
 
             count = 0;
+
             precisionAt1 = 0.0;
             precisionAt3 = 0.0;
             precisionAt5 = 0.0;
@@ -228,6 +317,17 @@ public class WikiRankedPrecisionEvaluator extends Evaluator {
             }
 
             return langTo.compareTo(other.langTo);
+        }
+
+        @Override
+        public String toString() {
+            String id = langFrom + "-" + langTo;
+ 
+            if (count == 0) {
+                return String.format("%s_1: -1, %s_3: -1, %s_5: -1", id, id, id);
+            }
+
+            return String.format("%s_1: %f, %s_3: %f, %s_5: %f", id, id, id, precisionAt1, precisionAt3, precisionAt5);
         }
     }
 }
